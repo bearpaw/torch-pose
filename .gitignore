@@ -1,3 +1,6 @@
+experiments
+data/mpii/images
+
 # Compiled Lua sources
 luac.out
 
