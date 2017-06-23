@@ -1,6 +1,6 @@
 require 'image'
-local visualizer = {}
--- local visualizer = torch.class('resnet.Visualizer', M)
+local M = {}
+local Visualizer = torch.class('Visualizer', M)
 
 local function drawLine(img,pt1,pt2,width,color)
     -- I'm sure there's a line drawing function somewhere in Torch,
@@ -54,7 +54,7 @@ end
 -------------------------------------------------------------------------------
 -- Functions for setting up the demo display
 -------------------------------------------------------------------------------
-function visualizer.drawSkeleton(input, coords, hms)
+function Visualizer:drawSkeleton(input, coords, hms)
 
     local im = input:clone()
 
@@ -92,14 +92,14 @@ function visualizer.drawSkeleton(input, coords, hms)
     return im
 end
 
-function visualizer.drawOutput(input, hms, coords)
+function Visualizer:drawOutput(input, hms, coords)
     input = image.scale(input:clone(), 320, 320)
     hms = image.scale(hms:clone(), 64, 64)
 
     
     local im = input
     if coords then
-        im = self:drawSkeleton(input, coords, hms)
+        im = self.drawSkeleton(input, coords, hms)
     end
 
 
@@ -115,7 +115,7 @@ function visualizer.drawOutput(input, hms, coords)
     return im
 end
 
-function visualizer.drawFeature(input, hms, coords)
+function Visualizer:drawFeature(input, hms, coords)
     local function grayHM(x)
         local cl = torch.zeros(3,x:size(1),x:size(2))
         cl[1] = x
@@ -130,7 +130,7 @@ function visualizer.drawFeature(input, hms, coords)
     
     local im = input
     if coords then
-        im = drawSkeleton(input, coords, hms)
+        im = self.drawSkeleton(input, coords, hms)
     end
 
 
@@ -144,4 +144,4 @@ function visualizer.drawFeature(input, hms, coords)
     return im
 end
 
-return visualizer
+return M.Visualizer

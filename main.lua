@@ -17,7 +17,6 @@ local Trainer = require 'train'
 local opts = require 'opts'
 local checkpoints = require 'checkpoints'
 local Logger = require 'utils.Logger'
--- local Initializer = require 'utils.weight-init'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 torch.setnumthreads(1)
@@ -31,7 +30,6 @@ local checkpoint, optimState = checkpoints.latest(opt)
 
 -- Create model
 local model, criterion = models.setup(opt, checkpoint)
-
 
 -- Data loading
 local trainLoader, valLoader, testLoader = DataLoader.create(opt)
@@ -53,14 +51,15 @@ if opt.testOnly then
    return
 end
 
-local r_step, d_step = 3/opt.nEpochs, 5/opt.nEpochs
-
-local startEpoch = checkpoint and checkpoint.epoch + 1 or opt.epochNumber
-local bestAcc = -math.huge
-local bestEpoch = 0
+-- Set logger
 local logger = Logger(paths.concat(opt.save, opt.expID, 'full.log'), opt.resume ~= 'none')
 logger:setNames{'Train acc.', 'Train loss.', 'Test acc.', 'Test loss.'}
 logger:style{'+-', '+-', '+-', '+-'}
+
+-- Training
+local startEpoch = checkpoint and checkpoint.epoch + 1 or opt.epochNumber
+local bestAcc = -math.huge
+local bestEpoch = 0
 for epoch = startEpoch, opt.nEpochs do
    -- Train for a single epoch
    local trainAcc, trainLoss = trainer:train(epoch, trainLoader)
@@ -87,18 +86,7 @@ for epoch = startEpoch, opt.nEpochs do
       checkpoints.save(epoch, model, trainer.optimState, opt)
    end
 
-   -- -- BN
-   -- local function brn(rmax, dmax)
-   --    for k,v in pairs(model:findModules('cudnn.SpatialBatchRenormalization')) do
-   --       v.rmax = rmax
-   --       v.dmax = dmax
-   --    end
-   -- end
-
-   -- brn(1+r_step*epoch, 0+d_step*epoch)
-
    collectgarbage()
 end
 
 print(string.format(' * Finished acc: %6.3f, Best epoch: %d', bestAcc, bestEpoch))
--- logger:plot()

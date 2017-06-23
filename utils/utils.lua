@@ -68,9 +68,6 @@ function utils.shuffleLR(x, opt)
           {11,16}, {12,15}, {13,14}
       }
   elseif opt.dataset == 'flic' then
-      -- matched_parts = {
-      --     {1,4}, {2,5}, {3,6}, {7,8}, {9,10}
-      -- }      
       matchedParts = {
           {1,2}, {4,8}, {5,9}, {6,10}, {7,11}
       }
@@ -151,10 +148,6 @@ local function postprocess(heatmap, p)
 end
 
 function utils.finalPreds(heatmaps, centers, scales)
-    -- print(heatmaps:size())
-    -- print(centers)
-    -- print(scales)
-    -- os.exit()
     local n = heatmaps:size(1)
     local np = heatmaps:size(2)
 
@@ -176,7 +169,9 @@ function utils.finalPreds(heatmaps, centers, scales)
       local predMask = max:gt(0):repeatTensor(1, 1, 2):float()
       pred:add(-1):cmul(predMask):add(1)
 
+      -- Simple postprocess
       pred = postprocess(hms, pred)
+
       -- Get transformed coordinates
       local pred_tf = torch.zeros(pred:size())
       for i = 1,hms:size(1) do        -- Number of samples
@@ -249,43 +244,5 @@ function utils.OffsetFieldsfinalPreds(heatmaps, centers, scales)
    
    return preds, preds_tf
 end
-
--- function utils.finalPreds(heatmaps, centers, scales)
---     -- print(heatmaps:size())
---     -- print(centers)
---     -- print(scales)
---     -- os.exit()
---     local n = heatmaps:size(1)
---     local np = heatmaps:size(2)
-
---     local preds = torch.Tensor(n, np, 2)
---     local preds_tf = torch.Tensor(n, np, 2)
-
---     for sidx = 1, heatmaps:size(1) do
---       local hms = heatmaps[sidx]
---       local center = centers[sidx]
---       local scale = scales[sidx]
-
---       if hms:size():size() == 3 then hms = hms:view(1, hms:size(1), hms:size(2), hms:size(3)) end
-
---       -- Get locations of maximum activations
---       local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
---       local pred = torch.repeatTensor(idx, 1, 1, 2):float()
---       pred[{{}, {}, 1}]:apply(function(x) return (x - 1) % hms:size(4) + 1 end)
---       pred[{{}, {}, 2}]:add(-1):div(hms:size(3)):floor():add(.5)
-
---       -- Get transformed coordinates
---       local pred_tf = torch.zeros(pred:size())
---       for i = 1,hms:size(1) do        -- Number of samples
---           for j = 1,hms:size(2) do    -- Number of output heatmaps for one sample
---               pred_tf[i][j] = Transformer.transform(pred[i][j],center,scale,0,hms:size(3),true)
---           end
---       end
---       preds[sidx] = pred
---       preds_tf[sidx] = pred_tf
---     end
-
---     return preds, preds_tf
--- end
 
 return utils

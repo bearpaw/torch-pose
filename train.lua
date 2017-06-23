@@ -15,9 +15,11 @@ local Logger = require 'utils.Logger'
 local Transformer = require 'datasets/posetransforms'
 local nngraph = require 'nngraph'
 local utils = require 'utils.utils'
-local visualizer = require 'utils.visualizer'
+local Visualizer = require 'utils.Visualizer'
 local matio = require 'matio'
 -- nngraph.setDebug(true)
+
+visualizer = Visualizer()
 
 local M = {}
 local Trainer = torch.class('resnet.Trainer', M)
@@ -103,9 +105,6 @@ function Trainer:train(epoch, dataloader)
 
          -- Calculate accuracy
          local acc = self:computeScore(output, self.target)
-         -- local acc2 = self:computeScore(output[#output-1], self.target[#self.target-1])
-         -- local acc = self:computeScore(output[#output-2], self.target[#self.target-2])
-
          lossSum = lossSum + loss*batchSize
          accSum = accSum + acc*batchSize
          N = N + batchSize
@@ -113,10 +112,8 @@ function Trainer:train(epoch, dataloader)
          print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.6f    Loss %.6f    Acc %.6f'):format(
             epoch, n, trainSize, timer:time().real, dataTime, loss, acc))
 
-         -- print((' | Epoch: [%d][%d/%d]    Time %.3f  Data %.6f    Loss %.6f    Acc %.6f  Acc2 %.6f  Acc3 %.6f'):format(
-         --    epoch, n, trainSize, timer:time().real, dataTime, loss, acc, acc2, acc3))
-
          self.trainLogger:add{epoch, n, acc, loss, self.optimState.learningRate, self.gradParams:min(), self.gradParams:max(), self.gradParams:mean(), self.gradParams:std()}
+         
          -- check that the storage didn't get changed do to an unfortunate getParameters call
          assert(self.params:storage() == self.model:parameters()[1]:storage())
 
@@ -171,13 +168,6 @@ function Trainer:test(epoch, dataloader)
       flippedOut = applyFn(function (x) return flip(shuffleLR(x, self.opt)) end, flippedOut)
       output = applyFn(function (x,y) return x:add(y):div(2) end, output, flippedOut)
 
-      -- -- Fusion scores from all stacks
-      -- local fusionScore = torch.Tensor(output[1]:size())
-      -- for ii = 1, #output do 
-      --   fusionScore = fusionScore + output[ii]:float()
-      -- end
-      -- output = {fusionScore}
-
       -- Get predictions (hm and img refer to the coordinate space)
       local preds_hm, preds_img = finalPreds(output[#output], sample.center, sample.scale)
       table.insert(predsTable, preds_img)
@@ -185,19 +175,13 @@ function Trainer:test(epoch, dataloader)
 
       if self.isDebug then
          local image = require('image')
-         local gtIm = visualizer:drawOutput(self.input[1][{{1,3},{},{}}]:float(), self.target[#self.target][1]:float())
-         local outIm = visualizer:drawOutput(self.input[1][{{1,3},{},{}}]:float(), output[#output][1]:float(), (preds_hm[1]-0.5)*5)
+         local gtIm = visualizer:drawOutput(self.input[1]:float(), self.target[#self.target][1]:float())
+         local outIm = visualizer:drawOutput(self.input[1][{{1,3},{},{}}]:float(), output[#output][1]:float())
          win1=image.display{image=gtIm, win=win1, legend=('Test gt: %d | %d'):format(n, size)}
          win2=image.display{image=outIm, win=win2, legend=('Test output: %d | %d'):format(n, size)}
-         -- sys.sleep(0.5)
       end
 
-      -- for ii = 1, sample.input:size(1) do
-      --   matio.save(('checkpoints/mpii/mpii_hg_s8_r1_v511_scale4/results/valid_%.4d.mat'):format(sample.index[ii]),{image=sample.input[ii], preds=preds_hm[ii]})
-      -- end
       local acc, preds_hm, sampleAcc = self:computeScore(output, self.target)
-     -- local acc2 = self:computeScore(output[#output-1], self.target[#self.target-1])
-     -- local acc = self:computeScore(output[#output-2], self.target[#self.target-2])
 
       -- ----------------------- Save bad samples
       -- for ii = 1, #sampleAcc do 
@@ -215,8 +199,6 @@ function Trainer:test(epoch, dataloader)
 
       print((' Testing | Epoch: [%d][%d/%d]    Time %.3f  Data %.6f    Loss %.6f    Acc %.6f'):format(
        epoch, n, size, timer:time().real, dataTime, loss, acc))
-      -- print((' Testing | Epoch: [%d][%d/%d]    Time %.3f  Data %.6f    Loss %.6f    Acc %.6f   Acc2 %.6f   Acc3 %.6f'):format(
-      --  epoch, n, size, timer:time().real, dataTime, loss, acc, acc2, acc3))
 
       if epoch ~= 0 then
          self.testLogger:add{epoch, n, acc, loss}
@@ -250,8 +232,8 @@ end
 --  Multi-scale Testing
 ------------------------------------------------------------------------
 function Trainer:multiScaleTest(epoch, dataloader, scales)
+
    -- Helper function: mapping heatmaps to original image size
-   -------------------------------------------------------------------------------
    local function getHeatmaps(imHeight, imWidth, center, scale, rot, res, hm)
       local t = require 'datasets/posetransforms'
       local image = require('image')
@@ -410,22 +392,6 @@ function Trainer:mapPreds(ratio, sample, preds_hm)
 end
 
 function Trainer:copyInputs(sample)
-   -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
-   -- if using DataParallelTable. The target is always copied to a CUDA tensor
-   -- self.input = self.input or (self.opt.nGPU == 1
-   --    and torch.CudaTensor()
-   --    or cutorch.createCudaHostTensor())
-   -- self.input:resize(sample.input:size()):copy(sample.input)
-
-   -- if type(sample.target) == 'table' then
-   --    self.target = {} 
-   --    for i = 1, self.opt.nStack do
-   --       self.target[i] = sample.target[i]:clone():cuda()
-   --    end
-   -- else
-   --    self.target = self.target or torch.CudaTensor()
-   --    self.target:resize(sample.target:size()):copy(sample.target)
-   -- end
    self.input = sample.input:cuda()
    self.target = sample.target
    if torch.type(self.target) == 'table' then
@@ -517,32 +483,13 @@ function Trainer:computeScore(output, target)
    end
 end
 
--- function Trainer:copyInputs(sample)
---    -- Copies the input to a CUDA tensor, if using 1 GPU, or to pinned memory,
---    -- if using DataParallelTable. The target is always copied to a CUDA tensor
---    self.input = self.input or (self.opt.nGPU == 1
---       and torch.CudaTensor()
---       or cutorch.createCudaHostTensor())
---    self.input:resize(sample.input:size()):copy(sample.input)
-
---    if type(sample.target) == 'table' then
---       self.target = {} 
---       for i = 1, self.opt.nStack do
---          self.target[i] = sample.target[i]:clone():cuda()
---       end
---    else
---       self.target = self.target or torch.CudaTensor()
---       self.target:resize(sample.target:size()):copy(sample.target)
---    end
--- end
-
 function Trainer:learningRate(epoch)
    -- Training schedule
    local decay = 0
    if string.find(self.opt.dataset, 'mpii') ~= nil then
-      decay = epoch >= 200 and 3 or epoch >= 170 and 2 or epoch >= 150 and 1 or 0
+      decay = epoch >= 176 and 3 or epoch >= 151 and 2 or epoch >= 101 and 1 or 0
    end
-   return self.opt.LR * math.pow(0.1, decay)
+   return self.opt.LR * math.pow(0.2, decay)
 end
 
 return M.Trainer
