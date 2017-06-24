@@ -43,6 +43,27 @@ function M.setup(opt, checkpoint)
       model = model:get(1)
    end
 
+   -- Finetune from model
+   if opt.finetuneModel ~= 'none' then
+      print('Fintuning model from file: ' .. opt.finetuneModel)
+      require 'models.modules.SequentialDropout'
+      pretrained_model = torch.load(opt.finetuneModel):cuda()
+
+      convs = model:findModules('cudnn.SpatialConvolution')
+      pretrained_conv = pretrained_model:findModules('cudnn.SpatialConvolution')
+
+      for i = 1, math.min(#convs, #pretrained_conv) do 
+         local m1 = convs[i]
+         local m2 = pretrained_conv[i]
+         if m1.kW == m2.kW and m1.kH == m2.kH and 
+            m1.nInputPlane == m2.nInputPlane  and m1.nOutputPlane == m2.nOutputPlane then
+            m1.weight.clone(m2.weight)
+         else
+            break
+         end 
+      end
+   end
+
    -- optnet is an general library for reducing memory usage in neural networks
    if opt.optnet then
       local optnet = require 'optnet'

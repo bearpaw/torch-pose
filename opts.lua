@@ -58,6 +58,7 @@ function M.parse(arg)
    cmd:option('-expID',        'default',  'Experiment ID')
    cmd:option('-resume',       'none',     'Resume from the latest checkpoint in this directory')
    cmd:option('-loadModel',    'none',     'Load model')  
+   cmd:option('-finetuneModel','none',     'Finetune from model')  
    ---------- Optimization options ----------------------
    cmd:option('-LR',           2.5e-4,     'initial learning rate')
    cmd:option('-momentum',     0.0,        'momentum')

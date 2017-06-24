@@ -1,7 +1,13 @@
 # Temp files
+gen
+pretrained/*.t7
 checkpoints
 experiments
 data/mpii/images
+data/lsp/lsp_dataset
+data/lsp/lspet_dataset
+moniter.lua
+models/hg-*
 
 # Compiled Lua sources
 luac.out
