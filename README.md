@@ -42,9 +42,8 @@ A Torch based toolkit for 2D single-person human pose estimation in images
    ln -s PATH_TO_LSPEXT_DIR data/lsp/lspet_dataset
    ```
 
-## Usage
+## Train and Test
 
-### Training
 A sample script for training on the MPII dataset with 8-stack hourglass model.
 
 ```bash
@@ -83,7 +82,7 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$gpuID th main.lua \
    -nClasses $nClasses \
    -nEpochs $nEpochs \
    -snapshot $snapshot \
-   # -resume checkpoints/$expID  # uncomment this line to resume training
+   # -resume checkpoints/$expID  \ # uncomment this line to resume training
    # -testOnly true \ # uncomment this line to test on validation data
 ```
 
