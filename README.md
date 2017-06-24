@@ -7,6 +7,7 @@ A Torch based toolkit for 2D single-person human pose estimation in images
 * Multi-GPU training
 * Logger
 * Training/testing results visualization
+![Example](data/example.png)
 
 ## Install
 
@@ -63,9 +64,6 @@ nClasses=16
 nEpochs=200           
 snapshot=10           # save models for every $snapshot
 
-
-cd ../..
-
 OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$gpuID th main.lua \
    -dataset $dataset \
    -expID $expID \
@@ -86,5 +84,6 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$gpuID th main.lua \
    # -testOnly true \ # uncomment this line to test on validation data
 ```
 
-If you want to visualize the training results. Set `-debug true` and use `qlua` instead of `th`.
+* If you want to visualize the training results. Set `-debug true` and use `qlua` instead of `th`.
+* use `-loadModel MODEL_PATH` to load a specific model for testing or training
 
