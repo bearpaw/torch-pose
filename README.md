@@ -7,6 +7,7 @@ A Torch based toolkit for 2D single-person human pose estimation in images
 * Multi-GPU training
 * Logger
 * Training/testing results visualization
+
 ![Example](data/example.png)
 
 ## Install
