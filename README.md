@@ -84,6 +84,8 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$gpuID th main.lua \
    -nEpochs $nEpochs \
    -snapshot $snapshot \
    # -resume checkpoints/$expID  # uncomment this line to resume training
-
+   # -testOnly true \ # uncomment this line to test on validation data
 ```
+
+If you want to visualize the training results. Set `-debug true` and use `qlua` instead of `th`.
 
