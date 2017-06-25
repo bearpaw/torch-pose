@@ -4,7 +4,7 @@ local batchnorm = nnlib.SpatialBatchNormalization
 local relu = nnlib.ReLU
 
 -- Main convolutional block
-local function convBlock(numIn,numOut,stride,type)
+local function convBlock(numIn,numOut,dropout,stride,type)
     local s = nn.Sequential()
     if type ~= 'no_preact' then
         s:add(batchnorm(numIn))
@@ -17,6 +17,9 @@ local function convBlock(numIn,numOut,stride,type)
     s:add(batchnorm(numOut/2))
     s:add(relu(true))
     s:add(conv(numOut/2,numOut,1,1))
+    if dropout > 0 then
+        s:add(nn.Dropout(dropout,nil,true))
+    end
     return s
 end
 
@@ -43,13 +46,14 @@ local function skipLayer(numIn,numOut,stride, useConv)
 end
 
 -- Residual block
-function Residual(numIn,numOut,stride,type, useConv)
+function Residual(numIn,numOut,dropout,stride,type, useConv)
+    local dropout = dropout or 0
     local stride = stride or 1
     local type = type or 'preact'
     local useConv = useConv or false
     return nn.Sequential()
         :add(nn.ConcatTable()
-            :add(convBlock(numIn,numOut,stride,type))
+            :add(convBlock(numIn,numOut,dropout,stride,type))
             :add(skipLayer(numIn,numOut,stride,useConv)))
         :add(nn.CAddTable(true))
 end

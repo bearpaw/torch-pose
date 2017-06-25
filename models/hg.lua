@@ -9,24 +9,24 @@ local nngraph = require 'nngraph'
 local Residual = require('models.modules.Residual')
 local nnlib = cudnn
 
-local function hourglass(n, f, nModules, inp)
+local function hourglass(n, f, nModules, inp, dropout)
     -- Upper branch
     local up1 = inp
-    for i = 1,nModules do up1 = Residual(f,f)(up1) end
+    for i = 1,nModules do up1 = Residual(f,f,dropout)(up1) end
 
     -- Lower branch
     local low1 = nnlib.SpatialMaxPooling(2,2,2,2)(inp)
-    for i = 1,nModules do low1 = Residual(f,f)(low1) end
+    for i = 1,nModules do low1 = Residual(f,f,dropout)(low1) end
     local low2
 
-    if n > 1 then low2 = hourglass(n-1,f,nModules,low1)
+    if n > 1 then low2 = hourglass(n-1,f,nModules,low1,dropout)
     else
         low2 = low1
-        for i = 1,nModules do low2 = Residual(f,f)(low2) end
+        for i = 1,nModules do low2 = Residual(f,f,dropout)(low2) end
     end
 
     local low3 = low2
-    for i = 1,nModules do low3 = Residual(f,f,1,'preact',true)(low3) end
+    for i = 1,nModules do low3 = Residual(f,f,dropout,1,'preact',true)(low3) end
     local up2 = nn.SpatialUpSamplingNearest(2)(low3)
 
     -- Bring two branches together
@@ -44,23 +44,24 @@ local function preact(num, inp)
 end
 
 function createModel(opt)
+    local dropout = opt.dropout
 
     local inp = nn.Identity()()
 
     -- Initial processing of the image
     local cnv1_ = nnlib.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128
     local cnv1 = nnlib.ReLU(true)(nnlib.SpatialBatchNormalization(64)(cnv1_))
-    local r1 = Residual(64,128,1,'no_preact')(cnv1) 
+    local r1 = Residual(64,128,dropout,1,'no_preact')(cnv1) 
 
     local pool = nnlib.SpatialMaxPooling(2,2,2,2)(r1)                       -- 64
-    local r4 = Residual(128,128)(pool)
-    local r5 = Residual(128,opt.nFeats)(r4)
+    local r4 = Residual(128,128,dropout)(pool)
+    local r5 = Residual(128,opt.nFeats,dropout)(r4)
 
     local out = {}
     local inter = r5
 
     for i = 1,opt.nStack do
-        local hg = hourglass(4,opt.nFeats, opt.nResidual, inter)
+        local hg = hourglass(4,opt.nFeats, opt.nResidual, inter,dropout)
 
         -- Should do BN After HG
         local ll = preact(opt.nFeats, hg)
