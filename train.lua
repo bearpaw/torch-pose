@@ -95,6 +95,17 @@ function Trainer:train(epoch, dataloader)
 
          local batchSize = self.input:size(1)
          local output = self.model:forward(self.input)
+
+         -- Mask out invisible part
+         for nsample = 1, #sample.pts do 
+            maskid = sample.pts[nsample][{{}, {1}}]:eq(0)
+            if maskid:sum() > 0 then 
+               for sidx = 1, #self.model.output do 
+                  self.target[sidx][{{nsample},{maskid},{}}]:clone(self.model.output[sidx])
+               end
+            end
+         end
+
          local loss = self.criterion:forward(self.model.output, self.target)
 
          self.model:zeroGradParameters()
@@ -487,6 +498,7 @@ function Trainer:learningRate(epoch)
    -- Training schedule
    local decay = 0
    if string.find(self.opt.dataset, 'mpii') ~= nil then
+      -- decay = epoch >= 201 and 3 or epoch >= 171 and 2 or epoch >= 151 and 1 or 0
       decay = epoch >= 176 and 3 or epoch >= 151 and 2 or epoch >= 101 and 1 or 0
    end
    return self.opt.LR * math.pow(0.2, decay)
