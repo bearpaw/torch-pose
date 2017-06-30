@@ -49,7 +49,7 @@ function DataLoader:__init(dataset, opt, split)
    local threads, sizes = Threads(opt.nThreads, init, main)
    self.threads = threads
    self.__size = sizes[1][1]
-   self.batchSize = opt.batchSize
+   self.batchSize = split == 'train' and opt.trainBatch or opt.testBatch
    self.inputRes = opt.inputRes
    self.outputRes = opt.outputRes
    self.nStack = opt.nStack

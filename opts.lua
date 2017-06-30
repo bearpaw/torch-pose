@@ -44,7 +44,8 @@ function M.parse(arg)
    ------------- Training options --------------------
    cmd:option('-nEpochs',      0,          'Number of total epochs to run')
    cmd:option('-epochNumber',  1,          'Manual epoch number (useful on restarts)')
-   cmd:option('-batchSize',    1,          'mini-batch size (1 = pure stochastic)')
+   cmd:option('-trainBatch',   1,          'Training mini-batch size (1 = pure stochastic)')
+   cmd:option('-testBatch',    1,          'Testing mini-batch size')
    cmd:option('-iterSize',     1,          'Accumulate gradients across [iterSize] batches in training')
    cmd:option('-testOnly',     'false',    'Run on validation set only')
    cmd:option('-testRelease',  'false',    'Run on testing set only')
@@ -66,6 +67,8 @@ function M.parse(arg)
    cmd:option('-alpha',        0.99,       'Alpha')
    cmd:option('-epsilon',      1e-8,       'Epsilon')
    cmd:option('-dropout',      0,          'Dropout ratio')
+   cmd:option('-schedule',     "101 151 201", 'Dropout ratio')
+   cmd:option('-gamma',        0.2,        'LR is multiplied by gamma on schedule.')
    cmd:option('-init',         'none',     'Weight initialization method: none | heuristic | xavier | xavier_caffe | kaiming')
    ---------- Model options ----------------------------------
    cmd:option('-netType',      'hg-stacked','Options: resnet | preresnet | hg-stacked')
@@ -124,6 +127,13 @@ function M.parse(arg)
    if opt.shareGradInput and opt.optnet then
       cmd:error('error: cannot use both -shareGradInput and -optnet')
    end
+
+   -- Parse schedule
+   schedule = {}
+   for x in string.gmatch(opt.schedule, "%S+") do 
+      table.insert(schedule, tonumber(x))
+   end
+   opt.schedule = schedule
 
    return opt
 end

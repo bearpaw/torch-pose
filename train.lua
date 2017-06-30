@@ -220,21 +220,21 @@ function Trainer:test(epoch, dataloader)
    end
    self.model:training()
 
-    -- Saving predictions
-    local preds = torch.Tensor(N, predsTable[1]:size(2), predsTable[1]:size(3))
-    local ptr = 1
-    for k,v in pairs(predsTable) do
-       local batchSize = v:size(1)
-       for j = 1, batchSize do            
-        local idx = indexTable[k][j]
-        local pred = v[j]
-        preds[idx]:copy(pred)
-       end
-    end
-    local predFilePath = paths.concat(self.opt.save, self.opt.expID, 'pred_post_' .. epoch .. '.h5')
-    local predFile = hdf5.open(predFilePath, 'w')
-    predFile:write('preds', preds)
-    predFile:close()
+   -- Saving predictions
+   local preds = torch.Tensor(N, predsTable[1]:size(2), predsTable[1]:size(3))
+   local ptr = 1
+   for k,v in pairs(predsTable) do
+      local batchSize = v:size(1)
+      for j = 1, batchSize do            
+         local idx = indexTable[k][j]
+         local pred = v[j]
+         preds[idx]:copy(pred)
+      end
+   end
+   local predFilePath = paths.concat(self.opt.save, self.opt.expID, 'pred_post_' .. epoch .. '.h5')
+   local predFile = hdf5.open(predFilePath, 'w')
+   predFile:write('preds', preds)
+   predFile:close()
 
    return accSum / N, lossSum / N
 end
@@ -256,8 +256,8 @@ function Trainer:multiScaleTest(epoch, dataloader, scales)
 
       local pad = math.floor(torch.norm((ul - br):float())/2 - (br[1]-ul[1])/2)
       if rot ~= 0 then
-          ul = ul - pad
-          br = br + pad
+         ul = ul - pad
+         br = br + pad
       end
 
       local newDim,newImg,ht,wd
@@ -273,7 +273,7 @@ function Trainer:multiScaleTest(epoch, dataloader, scales)
 
 
       if rot ~= 0 then
-          error('Currently we only support rotation == 0.')
+         error('Currently we only support rotation == 0.')
       end
 
       -- mapping
@@ -283,20 +283,20 @@ function Trainer:multiScaleTest(epoch, dataloader, scales)
 
       -- Display heatmaps
       if false then
-          local colorHms = {}
-          for i = 1,16 do 
-              colorHms[i] = colorHM(newHm[i])
-              colorHms[i]:mul(.7):add(inp)
-              w = image.display{image=colorHms[i],win=w}
-              sys.sleep(2)
-          end
+         local colorHms = {}
+         for i = 1,16 do 
+            colorHms[i] = colorHM(newHm[i])
+            colorHms[i]:mul(.7):add(inp)
+            w = image.display{image=colorHms[i],win=w}
+            sys.sleep(2)
+         end
       end
 
       return newHm
    end
    -------------------------------------------------------------------------------
 
-   assert(self.opt.batchSize == 1, 'Multi-scale testing only support batchSize=1')
+   assert(self.opt.testBatch == 1, 'Multi-scale testing only support batchSize=1')
 
    local timer = torch.Timer()
    local dataTimer = torch.Timer()
@@ -331,21 +331,21 @@ function Trainer:multiScaleTest(epoch, dataloader, scales)
       local finalPredsHms = output[#output]
       local fuseHm = torch.zeros(self.opt.nClasses, imHeight, imWidth)
       for pyra = 1, #scales do
-        local hm_img = getHeatmaps(imHeight, imWidth, sample.center[pyra], sample.scale[pyra], 0, 256, finalPredsHms[pyra])
-        fuseHm = fuseHm + hm_img
+         local hm_img = getHeatmaps(imHeight, imWidth, sample.center[pyra], sample.scale[pyra], 0, 256, finalPredsHms[pyra])
+         fuseHm = fuseHm + hm_img
       end
       fuseHm = fuseHm/#scales
 
       -- Get predictions
       local curImgIdx = sample.index[1]
       for p = 1,16 do
-          local maxy, iy = fuseHm[p]:max(2)
-          local maxv, ix = maxy:max(1)
-          ix = torch.squeeze(ix)
+         local maxy, iy = fuseHm[p]:max(2)
+         local maxv, ix = maxy:max(1)
+         ix = torch.squeeze(ix)
 
-          preds[curImgIdx][p][2] = ix
-          preds[curImgIdx][p][1] = iy[ix]
-          preds[curImgIdx][p][3] = maxy[ix]
+         preds[curImgIdx][p][2] = ix
+         preds[curImgIdx][p][1] = iy[ix]
+         preds[curImgIdx][p][3] = maxy[ix]
       end  
 
       -- Visualize heatmaps
@@ -420,37 +420,37 @@ function Trainer:computeScore(output, target)
    -- Helpful functions for evaluation
    -------------------------------------------------------------------------------
    local function calcDists(preds, label, normalize)
-       local dists = torch.Tensor(preds:size(2), preds:size(1))
-       local diff = torch.Tensor(2)
-       for i = 1,preds:size(1) do
-           for j = 1,preds:size(2) do
-               if label[i][j][1] > 1 and label[i][j][2] > 1 then
-                   dists[j][i] = torch.dist(label[i][j],preds[i][j])/normalize[i]
-               else
-                   dists[j][i] = -1
-               end
-           end
-       end
-       return dists
+      local dists = torch.Tensor(preds:size(2), preds:size(1))
+      local diff = torch.Tensor(2)
+      for i = 1,preds:size(1) do
+         for j = 1,preds:size(2) do
+            if label[i][j][1] > 1 and label[i][j][2] > 1 then
+               dists[j][i] = torch.dist(label[i][j],preds[i][j])/normalize[i]
+            else
+               dists[j][i] = -1
+            end
+         end
+      end
+      return dists
    end
 
    local function getPreds(hm)
-       assert(hm:dim() == 4, 'Input must be 4-D tensor')
-       local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
-       local preds = torch.repeatTensor(idx, 1, 1, 2):float()
-       preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hm:size(4) + 1 end)
-       preds[{{}, {}, 2}]:add(-1):div(hm:size(3)):floor():add(1)
-       return preds
+      assert(hm:dim() == 4, 'Input must be 4-D tensor')
+      local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
+      local preds = torch.repeatTensor(idx, 1, 1, 2):float()
+      preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hm:size(4) + 1 end)
+      preds[{{}, {}, 2}]:add(-1):div(hm:size(3)):floor():add(1)
+      return preds
    end
 
    local function distAccuracy(dists, thr)
-       -- Return percentage below threshold while ignoring values with a -1
-       if not thr then thr = .5 end
-       if torch.ne(dists,-1):sum() > 0 then
-           return dists:le(thr):eq(dists:ne(-1)):sum() / dists:ne(-1):sum()
-       else
-           return -1
-       end
+      -- Return percentage below threshold while ignoring values with a -1
+      if not thr then thr = .5 end
+      if torch.ne(dists,-1):sum() > 0 then
+         return dists:le(thr):eq(dists:ne(-1)):sum() / dists:ne(-1):sum()
+      else
+         return -1
+      end
    end
 
    local function heatmapAccuracy(output, label, idxs, outputRes)
@@ -497,11 +497,12 @@ end
 function Trainer:learningRate(epoch)
    -- Training schedule
    local decay = 0
-   if string.find(self.opt.dataset, 'mpii') ~= nil then
-      -- decay = epoch >= 201 and 3 or epoch >= 171 and 2 or epoch >= 151 and 1 or 0
-      decay = epoch >= 176 and 3 or epoch >= 151 and 2 or epoch >= 101 and 1 or 0
+   for i = 1, #self.opt.schedule do
+      if epoch >= self.opt.schedule[i] then 
+         decay = i
+      end
    end
-   return self.opt.LR * math.pow(0.2, decay)
+   return self.opt.LR * math.pow(self.opt.gamma, decay)
 end
 
 return M.Trainer
