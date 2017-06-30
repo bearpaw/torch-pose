@@ -33,28 +33,28 @@ local M = {}
 local MpiiDataset = torch.class('resnet.MpiiDataset', M)
 
 function MpiiDataset:__init(imageInfo, opt, split)
-  assert(imageInfo[split], split)
-  self.imageInfo = imageInfo[split]
-  self.split = split
+   assert(imageInfo[split], split)
+   self.imageInfo = imageInfo[split]
+   self.split = split
 
-  -- Arguments
-  self.inputRes = opt.inputRes
-  self.outputRes = opt.outputRes
-  self.scaleFactor = opt.scaleFactor
-  self.rotFactor = opt.rotFactor
-  self.dataset = opt.dataset
-  self.nStack = opt.nStack
-  self.nGPU = opt.nGPU
-  self.batchSize = opt.batchSize
-  self.minusMean = opt.minusMean
-  self.gsize = opt.gsize
-  self.bg = opt.bg
-  self.rotProbab = opt.rotProbab
-  self.mask = opt.mask
+   -- Arguments
+   self.inputRes = opt.inputRes
+   self.outputRes = opt.outputRes
+   self.scaleFactor = opt.scaleFactor
+   self.rotFactor = opt.rotFactor
+   self.dataset = opt.dataset
+   self.nStack = opt.nStack
+   self.nGPU = opt.nGPU
+   self.batchSize = split == 'train' and opt.trainBatch or opt.testBatch
+   self.minusMean = opt.minusMean
+   self.gsize = opt.gsize
+   self.bg = opt.bg
+   self.rotProbab = opt.rotProbab
+   self.mask = opt.mask
 
-  self.meanstd = {}
-  self.meanstd.mean = torch.FloatTensor({0.4661, 0.4422, 0.4047})
-  self.meanstd.std  = torch.FloatTensor({0.1260, 0.1243, 0.1339})
+   self.meanstd = {}
+   self.meanstd.mean = torch.FloatTensor({0.4661, 0.4422, 0.4047})
+   self.meanstd.std  = torch.FloatTensor({0.1260, 0.1243, 0.1339})
 end
 
 function MpiiDataset:get(i, scaleFactor)
@@ -73,11 +73,11 @@ function MpiiDataset:get(i, scaleFactor)
    local tpts = pts:clone()
    local tptsOut = pts:clone()
    for i = 1,nParts do
-     if pts[i][1] > 0 then -- Checks that there is a ground truth annotation
+      if pts[i][1] > 0 then -- Checks that there is a ground truth annotation
          tpts[i] = transform(torch.add(pts[i],1), c, s, 0, self.inputRes)
          tptsOut[i] = transform(torch.add(pts[i],1), c, s, 0, self.outputRes)
          drawGaussian(out[i], tptsOut[i], self.gsize)
-     end
+      end
    end
 
    if self.bg == 'true' then
@@ -154,8 +154,8 @@ function MpiiDataset:augmentation(input, label)
 
       -- Flip
       if torch.uniform() <= .5 then
-          input = flip(input)
-          label = flip(shuffleLR(label, self.dataset))
+         input = flip(input)
+         label = flip(shuffleLR(label, self.dataset))
       end
   end
 
