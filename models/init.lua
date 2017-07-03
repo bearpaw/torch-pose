@@ -65,11 +65,11 @@ function M.setup(opt, checkpoint)
    end
 
    -- optnet is an general library for reducing memory usage in neural networks
-   if opt.optnet then
+   if opt.optnet == 'true' then
       local optnet = require 'optnet'
       local imsize = 256
-      local sampleInput = torch.zeros(4,3,imsize,imsize):cuda()
-      optnet.optimizeMemory(model, sampleInput, {inplace = false, mode = 'training'})
+      local sampleInput = torch.zeros(2,3,imsize,imsize):cuda()
+      optnet.optimizeMemory(model, sampleInput, {inplace = true, mode = 'training'})
    end
 
    -- This is useful for fitting ResNet-50 on 4 GPUs, but requires that all

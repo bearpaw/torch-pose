@@ -18,6 +18,7 @@ A Torch based toolkit for 2D single-person human pose estimation in images
    ```
    luarocks install hdf5
    luarocks install matio
+   luarocks install optnet
    ```
 
 3. Install nccl for better performance when training with multi-GPUs

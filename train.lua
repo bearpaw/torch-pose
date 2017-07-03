@@ -97,11 +97,14 @@ function Trainer:train(epoch, dataloader)
          local output = self.model:forward(self.input)
 
          -- Mask out invisible part
-         for nsample = 1, #sample.pts do 
-            maskid = sample.pts[nsample][{{}, {1}}]:eq(0)
-            if maskid:sum() > 0 then 
-               for sidx = 1, #self.model.output do 
-                  self.target[sidx][{{nsample},{maskid},{}}]:clone(self.model.output[sidx])
+         if self.opt.ignInvisible == 'true' then 
+            print('ing')
+            for nsample = 1, #sample.pts do 
+               maskid = sample.pts[nsample][{{}, {1}}]:eq(0)
+               if maskid:sum() > 0 then 
+                  for sidx = 1, #self.model.output do 
+                     self.target[sidx][{{nsample},{maskid},{}}]:clone(self.model.output[sidx])
+                  end
                end
             end
          end
